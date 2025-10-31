@@ -1,0 +1,121 @@
+#include "main.h"
+#include "pros/motors.hpp"
+
+
+pros::Controller master(pros::E_CONTROLLER_MASTER, 21);
+
+// Drive motors (adjust ports and reversed flags to match your robot wiring)
+// Assumption: a mecanum or holonomic drive with four independent wheels.
+pros::Motor front_left(-5, true);
+pros::Motor back_left(-13, true);
+pros::Motor front_right(-14, false);
+pros::Motor back_right(17, false);
+
+// If you actually have 6 motors (3 per side), you can either group them into MotorGroups
+// or add the extra motors here and mirror the same values to them.
+
+pros::Motor intake(11);       // intake motor
+pros::Motor intake1(19);      // intake motor
+pros::Motor intake2(20);      // intake motor
+
+
+	
+
+
+/**
+ * A callback function for LLEMU's center button.
+ *
+ * When this callback is fired, it will toggle line 2 of the LCD text between
+ * "I was pressed!" and nothing.
+ */
+void on_center_button() {
+	static bool pressed = false;
+	pressed = !pressed;
+	void opcontrol() {
+		// Main operator control loop. Maps:
+		// - Left stick vertical (ANALOG_LEFT_Y) -> forward/back
+		// - Right stick horizontal (ANALOG_RIGHT_X) -> strafe left/right
+		// - Right stick vertical (ANALOG_RIGHT_Y) -> rotation (optional)
+
+		auto clamp = [](int v) {
+			if (v > 127) return 127;
+			#include "main.h"
+			#include "pros/motors.hpp"
+
+			pros::Controller master(pros::E_CONTROLLER_MASTER, 21);
+
+			// Drive motors (adjust ports and reversed flags to match your robot wiring)
+			pros::Motor front_left(5, true);
+			pros::Motor back_left(13, true);
+			pros::Motor front_right(14, false);
+			pros::Motor back_right(17, false);
+
+			// Intake motors: user requested ports 10 and 20 spin with R1
+			pros::Motor intake_left(10, false);
+			pros::Motor intake_right(20, false);
+
+			/**
+			 * A callback function for LLEMU's center button.
+			 */
+			void on_center_button() {
+				static bool pressed = false;
+				pressed = !pressed;
+				if (pressed) {
+					pros::lcd::set_text(2, "I was pressed!");
+				} else {
+					pros::lcd::clear_line(2);
+				}
+			}
+
+			void initialize() {
+				pros::lcd::initialize();
+				pros::lcd::set_text(1, "Hello PROS User!");
+				pros::lcd::register_btn1_cb(on_center_button);
+			}
+
+			void disabled() {}
+			void competition_initialize() {}
+			void autonomous() {}
+
+			void opcontrol() {
+				// Main operator control loop. Maps:
+				// - Left stick vertical -> forward/back
+				// - Right stick horizontal -> strafe left/right
+				// - Right stick vertical -> rotate
+
+				auto clamp = [](int v) {
+					if (v > 127) return 127;
+					if (v < -127) return -127;
+					return v;
+				};
+
+				while (true) {
+					int forward = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+					int strafe = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+					int rotate = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
+
+					int fl = forward + strafe + rotate;
+					int bl = forward - strafe + rotate;
+					int fr = forward - strafe - rotate;
+					int br = forward + strafe - rotate;
+
+					front_left.move(clamp(fl));
+					back_left.move(clamp(bl));
+					front_right.move(clamp(fr));
+					back_right.move(clamp(br));
+
+					// Intake control: R1 forward, R2 reverse
+					if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+						intake_left.move(127);
+						intake_right.move(127);
+					} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+						intake_left.move(-127);
+						intake_right.move(-127);
+					} else {
+						intake_left.move(0);
+						intake_right.move(0);
+					}
+
+					pros::delay(20);
+				}
+			}
